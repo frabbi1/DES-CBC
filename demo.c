@@ -51,19 +51,16 @@ void printvalueOfDES_LONG(DES_LONG* val) {
     printf("\n");
 }
 
-void doCBC(DES_LONG *data, const_DES_cblock roundOutput) {
+void doCBCenc(DES_LONG *data, const_DES_cblock roundOutput, FILE *outFile) {
     DES_LONG in[2];
     doBitwiseXor(in, data, roundOutput);
 
     DES_encrypt1(in,&key,ENC);
     printf("ENCRYPTED\n");
     printvalueOfDES_LONG(in);
+    fwrite(in, 8, 1, outFile);
 
     memcpy(roundOutput, in, 2*sizeof(DES_LONG));
-
-    DES_encrypt1(in,&key,DEC);
-    printf("DECRYPTED\n");
-    printvalueOfDES_LONG(in);
 }
 
 void printChars(DES_LONG i) {
@@ -104,37 +101,53 @@ int main(int argc, char** argv)
 
         DES_LONG data[2] = {0, 0};
         FILE *inpFile;
+        FILE *outFile;
 
 
-        inpFile = fopen(argv[3], "rb");
+        inpFile = fopen(argv[3], "r");
+        outFile = fopen("demo.out", "wb");
 
-        if(inpFile) {
-            const_DES_cblock roundOutput;
-            // printvalueOfDesBlock(IV);
-            copyValue(IV, roundOutput, 8);
-            // printvalueOfDesBlock(roundOutput);
-            int succesfulBlockReadSize = fread(data, 1, 8, inpFile);
-            while (succesfulBlockReadSize == 8)
-            {
-                printChars(data[0]);
-                printChars(data[1]);
-                printf("\n");
-                doCBC(data, roundOutput);
-                printf("\n");
-                data[0] = 0; // for automatic padding by 0
-                data[1] = 0; // for automatic padding by 0
-                succesfulBlockReadSize = fread(data, 1, 8, inpFile);
+        if(inpFile && outFile) {
+            unsigned char ch;
+            int count = 0;
+            while(!feof(inpFile)) {
+                ch = fgetc(inpFile);
+                count++;
+                if(count == 8) {
+                    count = 0;
+                }
             }
-            if(succesfulBlockReadSize > 0) {
-                printChars(data[0]);
-                printChars(data[1]);
-                printf("\n");
-                doCBC(data, roundOutput); //for last block
-            }
-            printf("\n");
-            fclose(inpFile);
+            // const_DES_cblock roundOutput;
+            // // printvalueOfDesBlock(IV);
+            // copyValue(IV, roundOutput, 8);
+            // // printvalueOfDesBlock(roundOutput);
+            // int succesfulBlockReadSize = fread(data, 1, 8, inpFile);
+            // while (succesfulBlockReadSize == 8)
+            // {
+            //     printChars(data[0]);
+            //     printChars(data[1]);
+            //     printf("\n");
+            //     doCBCenc(data, roundOutput, outFile);
+            //     printf("\n");
+            //     data[0] = 0; // for automatic padding by 0
+            //     data[1] = 0; // for automatic padding by 0
+            //     succesfulBlockReadSize = fread(data, 1, 8, inpFile);
+            // }
+            // if(succesfulBlockReadSize > 0) {
+            //     printChars(data[0]);
+            //     printChars(data[1]);
+            //     printf("\n");
+            //     doCBCenc(data, roundOutput, outFile); //for last block
+            // }
+            // printf("\n");
             
+            
+        } else {
+            printf("Error in opening file\n");
         }
+
+        fclose(inpFile);
+        fclose(outFile);
         
     }
 }
